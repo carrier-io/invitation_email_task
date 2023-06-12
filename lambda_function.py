@@ -37,7 +37,8 @@ def lambda_handler(event: Union[dict, list, None] = None, context=None):
         except json.decoder.JSONDecodeError:
             ...
         sender = environ.get('sender', user)
-        template = base64.b64decode(environ.get('template', '')).decode('utf-8')
+        template = base64.b64decode(environ.get('template', e.get("template", ""))).decode(
+            'utf-8')
         project_id = environ.get('project_id')
         if debug_sleep:
             print('event env', {
@@ -50,21 +51,13 @@ def lambda_handler(event: Union[dict, list, None] = None, context=None):
             })
 
         try:
-            recipients: list[dict[str, list]] = e.pop('recipients')
+            recipients: list[str] = e.pop('recipients')
         except KeyError:
-            try:
-                one_recipient = e.pop('one_recipient')
-                one_role = e.pop('one_role')
-                recipients = [{
-                    'email': one_recipient,
-                    'roles': [one_role]
-                }]
-            except KeyError:
-                return {
-                    'statusCode': 500,
-                    'body': 'Specify recipients in event'
-                }
-        subject = e.get('subject', 'Invitation to a Centry project')
+            return {
+                'statusCode': 500,
+                'body': 'Specify recipients in event'
+            }
+        subject = e.get('subject', 'Email from a Centry project')
 
         template_vars = {
             'project_id': project_id
@@ -84,13 +77,13 @@ def lambda_handler(event: Union[dict, list, None] = None, context=None):
                     msg_root['Subject'] = Template(subject).render(user_template_vars)
                     if sender:
                         msg_root['From'] = sender
-                    msg_root['To'] = recipient['email']
+                    msg_root['To'] = recipient
                     msg_root.attach(
                         MIMEText(email_content.render(user_template_vars), 'html')
                     )
-                    client.sendmail(sender, recipient['email'], msg_root.as_string())
+                    client.sendmail(sender, recipient, msg_root.as_string())
 
-                    print(f'Email sent from {sender} to {recipient["email"]}')
+                    print(f'Email sent from {sender} to {recipient}')
         except Exception as e:
             from traceback import format_exc
             print(format_exc())
