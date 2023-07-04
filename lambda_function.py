@@ -75,8 +75,7 @@ def lambda_handler(event: Union[dict, list, None] = None, context=None):
 
                     msg_root = MIMEMultipart('alternative')
                     msg_root['Subject'] = Template(subject).render(user_template_vars)
-                    if sender:
-                        msg_root['From'] = sender
+                    msg_root['From'] = sender or user
                     msg_root['To'] = recipient
                     msg_root.attach(
                         MIMEText(email_content.render(user_template_vars), 'html')
